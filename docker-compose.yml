@@ -1,7 +1,21 @@
+version: '3.8'
+
 services:
   web:
     build: .
     container_name: alt_web01
     ports:
-      - "8000:8000"
-    restart: unless-stopped
+      - "15002:8000"
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=change-me-in-production
+    volumes:
+      # 将宿主机的 /opt/dockers/alt_web01 挂载映射到容器内的 /app
+      - /opt/dockers/alt_web01:/app      
+    restart: always
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    external: true
