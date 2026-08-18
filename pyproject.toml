@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alt_web01"
+version = "0.1.0"
+description = "大学生入学、毕业模拟系统演示网站（Flask）"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "leon" }]
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.0",
+]
+
+[project.optional-dependencies]
+deploy = [
+    "gunicorn>=21.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+alt_web01 = [
+    "templates/*.html",
+    "static/css/*.css",
+]

@@ -1,0 +1,107 @@
+/* alt_web01 全局样式：清新配色，贴合大学生朝气特点 */
+
+:root {
+    --brand: #2ba84a;          /* 清新绿 */
+    --brand-dark: #1f8239;
+    --brand-light: #e8f7ec;
+    --accent: #ffd166;         /* 活力黄 */
+    --ink: #243b2f;
+    --bg: #f6fbf7;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+/* 主体区域为固定导航条留出空间 */
+.main-content {
+    min-height: calc(100vh - 140px);
+    padding-top: 76px;
+}
+
+/* 品牌标识 */
+.brand-dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand), var(--accent));
+}
+
+.navbar .nav-link {
+    font-weight: 500;
+    color: #35543f;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link.active {
+    color: var(--brand-dark);
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--brand-light);
+    color: var(--brand-dark);
+}
+
+/* 首页横幅 */
+.hero {
+    background: linear-gradient(135deg, #2ba84a 0%, #2aa198 55%, #38c6d6 100%);
+    color: #ffffff;
+}
+
+/* 品牌按钮 */
+.btn-brand {
+    background-color: var(--brand);
+    border-color: var(--brand);
+    color: #ffffff;
+}
+
+.btn-brand:hover {
+    background-color: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: #ffffff;
+}
+
+/* 功能入口卡片 */
+.nav-card {
+    display: block;
+    border-radius: 16px;
+}
+
+.nav-card-body {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 1.75rem 1.25rem;
+    box-shadow: 0 4px 14px rgba(43, 168, 74, 0.10);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.nav-card:hover .nav-card-body {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(43, 168, 74, 0.18);
+}
+
+.nav-card-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+/* 通用内容页卡片 */
+.page-card {
+    max-width: 560px;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    box-shadow: 0 4px 14px rgba(43, 168, 74, 0.10);
+    border-top: 4px solid var(--brand);
+}
+
+/* 页脚 */
+.footer {
+    background: #ffffff;
+    border-top: 1px solid #e3efe6;
+}

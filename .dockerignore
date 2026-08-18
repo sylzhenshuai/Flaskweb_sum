@@ -1,0 +1,33 @@
+# 版本控制与 IDE
+.git
+.gitignore
+.idea
+.vscode
+
+# Python 运行产物
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 测试与缓存
+tests/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Docker 自身文件（无需打入镜像）
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 系统文件
+Thumbs.db
+.DS_Store
