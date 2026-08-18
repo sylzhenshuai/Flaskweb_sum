@@ -78,7 +78,7 @@ flask --app wsgi run --debug
 docker compose up --build -d
 ```
 
-浏览器访问 <http://localhost:8000>；停止服务：`docker compose down`。
+浏览器访问 <http://localhost:15002>；停止服务：`docker compose down`。
 
 ## License
 

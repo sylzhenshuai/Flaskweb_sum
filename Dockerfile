@@ -17,5 +17,7 @@ RUN pip install --no-cache-dir .[deploy]
 
 EXPOSE 8000
 
-# 容器内 WSGI 服务器启动命令
-CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:8000", "wsgi:app"]
+# 容器内 WSGI 服务器启动命令：
+# - 直接调用包内工厂函数 create_app()，不依赖 /app/wsgi.py 与工作目录
+# - --capture-output 捕获 worker 异常到主日志，避免真实报错被吞掉
+CMD ["gunicorn", "--workers", "2", "--capture-output", "--bind", "0.0.0.0:8000", "alt_web01:create_app()"]
