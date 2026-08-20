@@ -2,48 +2,53 @@
 
 {% block content %}
 <!-- 首页横幅 -->
-<section class="hero text-center">
-    <div class="container py-5">
-        <h1 class="display-5 fw-bold mb-3">alt_web01</h1>
-        <p class="lead mb-4">大学生入学、毕业模拟系统 · 演示网站</p>
-        <a class="btn btn-brand btn-lg px-4" href="{{ url_for('students.add_manual') }}">开始体验</a>
+<section class="hero">
+    <div class="hero-inner container text-center">
+        <span class="hero-badge reveal">🎓 演示系统 · Flask Application Factory</span>
+        <h1 class="hero-title reveal">大学生<span class="grad-text">入学·毕业</span>模拟系统</h1>
+        <p class="hero-sub reveal">从学生录入、大学管理到入学办理与统计分析，一站式的模拟业务流程演示平台。</p>
+        <div class="hero-actions reveal">
+            <a class="btn btn-brand btn-lg px-4" href="{{ url_for('students.add_manual') }}">立即体验</a>
+            <a class="btn btn-ghost btn-lg px-4" href="{{ url_for('stats.yearly') }}">查看统计</a>
+        </div>
     </div>
+    <div class="hero-scroll" aria-hidden="true"><span></span></div>
 </section>
 
 <!-- 功能入口卡片 -->
-<section class="container py-5">
+<section class="container feature-section">
     <div class="row g-4">
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-3 reveal" style="--reveal-delay: 0s">
             <a class="nav-card text-decoration-none" href="{{ url_for('students.add_manual') }}">
                 <div class="nav-card-body">
-                    <div class="nav-card-icon">🎓</div>
+                    <div class="nav-card-icon icon-a">🎓</div>
                     <h5 class="mb-1">学生</h5>
                     <p class="text-muted mb-0">手工 / 批量添加学生信息</p>
                 </div>
             </a>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-3 reveal" style="--reveal-delay: .08s">
             <a class="nav-card text-decoration-none" href="{{ url_for('universities.add_manual') }}">
                 <div class="nav-card-body">
-                    <div class="nav-card-icon">🏫</div>
+                    <div class="nav-card-icon icon-b">🏫</div>
                     <h5 class="mb-1">大学</h5>
                     <p class="text-muted mb-0">大学与专业组管理</p>
                 </div>
             </a>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-3 reveal" style="--reveal-delay: .16s">
             <a class="nav-card text-decoration-none" href="{{ url_for('enrollment.manual') }}">
                 <div class="nav-card-body">
-                    <div class="nav-card-icon">📝</div>
+                    <div class="nav-card-icon icon-c">📝</div>
                     <h5 class="mb-1">入学</h5>
                     <p class="text-muted mb-0">手动 / 自动入学办理</p>
                 </div>
             </a>
         </div>
-        <div class="col-sm-6 col-lg-3">
+        <div class="col-sm-6 col-lg-3 reveal" style="--reveal-delay: .24s">
             <a class="nav-card text-decoration-none" href="{{ url_for('stats.yearly') }}">
                 <div class="nav-card-body">
-                    <div class="nav-card-icon">📊</div>
+                    <div class="nav-card-icon icon-d">📊</div>
                     <h5 class="mb-1">统计分析</h5>
                     <p class="text-muted mb-0">学生数量多维统计</p>
                 </div>

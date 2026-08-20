@@ -23,6 +23,9 @@ tests/
 .coverage
 htmlcov/
 
+# sclog_lite 运行时日志目录
+logs/
+
 # Docker 自身文件（无需打入镜像）
 Dockerfile
 docker-compose.yml

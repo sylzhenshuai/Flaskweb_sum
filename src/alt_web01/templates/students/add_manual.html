@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-wrap">
+
+    <!-- 页头 -->
+    <header class="page-head reveal">
+        <span class="page-badge">学生管理</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">手工录入学生信息，或点击「自动生成」快速填充示例数据（生日范围 2000 ~ 2020 年）。</p>
+    </header>
+
+    <!-- 录入表单 -->
+    <section class="glass-card form-card reveal">
+        <form method="post" action="{{ url_for('students.save_student') }}" id="student-form" novalidate>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <label for="name" class="form-label">姓名</label>
+                    <input type="text" class="form-control form-control-lg" id="name" name="name"
+                           maxlength="30" placeholder="如：王浩宇" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label d-block">性别</label>
+                    <div class="gender-group" role="radiogroup" aria-label="性别">
+                        <input type="radio" class="btn-check" name="gender" id="gender-m" value="男" required>
+                        <label class="gender-option" for="gender-m">男</label>
+                        <input type="radio" class="btn-check" name="gender" id="gender-f" value="女" required>
+                        <label class="gender-option" for="gender-f">女</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label for="birthday" class="form-label">生日</label>
+                    <input type="date" class="form-control form-control-lg" id="birthday" name="birthday"
+                           min="2000-01-01" max="2020-12-31" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="btn-generate">
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <span class="btn-label">✨ 自动生成</span>
+                </button>
+                <button type="submit" class="btn btn-brand btn-lg">保存学生</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- 已保存清单 -->
+    <section class="glass-card list-card reveal">
+        <div class="list-head">
+            <h2 class="list-title">已保存学生清单</h2>
+            <span class="list-count">{{ students | length }} 条记录 · 暂存内存</span>
+        </div>
+
+        {% if students %}
+        <div class="table-responsive">
+            <table class="table student-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-index">#</th>
+                        <th scope="col">姓名</th>
+                        <th scope="col">性别</th>
+                        <th scope="col">生日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="col-index text-muted">{{ loop.index }}</td>
+                        <td class="fw-semibold">{{ s.name }}</td>
+                        <td>
+                            <span class="gender-tag gender-tag-{{ 'm' if s.gender == '男' else 'f' }}">{{ s.gender }}</span>
+                        </td>
+                        <td class="text-muted">{{ s.birthday }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="list-empty">
+            <div class="list-empty-icon">🗂️</div>
+            <p class="mb-0">暂无记录，保存第一位学生后将显示在这里。</p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+(function () {
+    const btn = document.getElementById('btn-generate');
+    const spinner = btn.querySelector('.spinner-border');
+    const nameInput = document.getElementById('name');
+    const birthdayInput = document.getElementById('birthday');
+
+    btn.addEventListener('click', async function () {
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        try {
+            const resp = await fetch("{{ url_for('students.random_student') }}");
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const data = await resp.json();
+
+            nameInput.value = data.name;
+            birthdayInput.value = data.birthday;
+            const radio = document.querySelector('input[name="gender"][value="' + data.gender + '"]');
+            if (radio) radio.checked = true;
+
+            // 字段填充高亮反馈
+            [nameInput, birthdayInput].forEach(function (el) {
+                el.classList.remove('field-flash');
+                void el.offsetWidth;  // 重启动画
+                el.classList.add('field-flash');
+            });
+        } catch (err) {
+            alert('自动生成失败，请稍后重试');
+        } finally {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+        }
+    });
+})();
+</script>
+{% endblock %}

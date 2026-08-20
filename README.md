@@ -7,7 +7,7 @@
 
 - **首页** — 网站欢迎页与功能入口
 - **学生**
-  - 手工添加学生
+  - 手工添加学生 — ✅ 已实现：表单录入（姓名/性别/生日）、一键自动生成、保存输出日志（sclog_lite）、页面下方展示内存清单；生日范围 2000 ~ 2020 年
   - 批量添加学生（小数据量）
   - 批量添加学生（大数据量）
 - **大学**
@@ -56,10 +56,12 @@ Flaskweb_sum/
 
 ## 本地运行
 
-> 需要 Python ≥ 3.13（当前仅依赖 Flask，无需数据库）。
+> 需要 Python ≥ 3.13。两个上游定制包（`random_student_info`、`sclog_lite`）
+> 未发布到 PyPI，需先从 GitHub 安装（遵循 POC01 llms.txt 约定）。
 
 ```bash
-pip install -e .
+pip install -r requirements.txt   # git 托管的上游包
+pip install -e .                  # 本包（flask + pandas）
 flask --app wsgi run --debug
 ```
 
