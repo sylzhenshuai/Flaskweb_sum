@@ -1,8 +1,10 @@
 # alt_web01 生产镜像：基于官方 Python 3.13 slim 镜像
 FROM python:3.13-slim
 
-# Install git
-RUN apt-get install -y git
+# 安装 Git（用于拉取 pyproject.toml 中的 Git 依赖）
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
 
 # 禁用字节码缓存并实时输出日志，便于容器内观察运行状态
 ENV PYTHONDONTWRITEBYTECODE=1 \

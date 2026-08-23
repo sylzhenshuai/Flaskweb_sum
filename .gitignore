@@ -14,6 +14,11 @@ dist/
 venv/
 env/
 
+# 本地与部署环境变量（可能包含数据库密码）
+.env
+.env.*
+!.env.example
+
 # 测试与缓存
 .pytest_cache/
 .ruff_cache/

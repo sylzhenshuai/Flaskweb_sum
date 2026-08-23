@@ -6,7 +6,7 @@ services:
       - "15002:8000"
     environment:
       SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql-server}
       MYSQL_PORT: ${MYSQL_PORT:-3306}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-test_db}
       MYSQL_USER: ${MYSQL_USER:-test_user}
