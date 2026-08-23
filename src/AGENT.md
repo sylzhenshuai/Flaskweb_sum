@@ -47,4 +47,4 @@ For deployment-file changes, also run `docker compose config --quiet` with `MYSQ
 
 - `update.sh` is the production update entrypoint. Keep its tracked-worktree guard, `git pull --ff-only`, Compose validation, image rebuild, and detached restart.
 - Do not add `git reset`, `git clean`, forced checkout, forced pull, or automatic database mutation to the update script.
-- The Compose deployment expects the external `app-network` and an externally supplied `MYSQL_PASSWORD`.
+- The Compose deployment expects the external `app-network`; on first run, `update.sh` must create the ignored local `.env` from an interactively or externally supplied `MYSQL_PASSWORD`.

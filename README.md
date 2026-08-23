@@ -80,15 +80,16 @@ python -m flask --app wsgi run --debug
 ## Docker 部署
 
 Web 容器通过外部 `app-network` 访问名为 `mysql-server` 的 MySQL 容器。
-部署前复制 `.env.example` 为不会提交到 Git 的 `.env`，并填写实际的
-`MYSQL_PASSWORD`。如果 MySQL 使用其他容器名或网络别名，还需修改
-`MYSQL_HOST`。
+首次克隆或以后更新都使用同一个入口：
 
 ```bash
-cp .env.example .env
-# 编辑 .env，填写真实的 MYSQL_PASSWORD 和 SECRET_KEY
-docker compose up --build -d
+bash update.sh
 ```
+
+首次运行时脚本会隐藏式询问 `test_user` 的 MySQL 密码，在虚拟机本地创建
+权限为 `600` 的 `.env`、生成随机 `SECRET_KEY`，然后校验、构建并启动服务。
+`.env` 不进入 Git；后续执行 `bash update.sh` 不会再次询问。如果 MySQL 使用
+其他容器名或网络别名，再修改本机 `.env` 中的 `MYSQL_HOST`。
 
 浏览器访问 <http://localhost:15002>；停止服务：`docker compose down`。
 
