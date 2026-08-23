@@ -9,10 +9,10 @@ create_env() {
 
     if [[ -z "$db_password" ]]; then
         if [[ ! -t 0 ]]; then
-            echo "update aborted: set MYSQL_PASSWORD or run interactively" >&2
+            echo "update aborted: set MYSQL_PASSWORD for MYSQL_USER=test_user or run interactively" >&2
             exit 1
         fi
-        read -r -s -p "MySQL password for test_user: " db_password
+        read -r -s -p "MySQL password for MYSQL_USER=test_user (not the root password): " db_password
         printf '\n'
     fi
 

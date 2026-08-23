@@ -91,6 +91,16 @@ bash update.sh
 `.env` 不进入 Git；后续执行 `bash update.sh` 不会再次询问。如果 MySQL 使用
 其他容器名或网络别名，再修改本机 `.env` 中的 `MYSQL_HOST`。
 
+这里必须输入 `MYSQL_USER=test_user` 对应的 `MYSQL_PASSWORD`，不要输入
+`MYSQL_ROOT_PASSWORD`。由于 `.env` 被 Git 忽略，`git pull` 不会创建、覆盖或
+修正虚拟机中已有的 `.env`。如果曾经输错密码，直接修改本机配置并重新创建
+Web 容器，无需删除或重新克隆仓库：
+
+```bash
+nano .env
+docker compose up -d --force-recreate web
+```
+
 浏览器访问 <http://localhost:15002>；停止服务：`docker compose down`。
 
 ## License
