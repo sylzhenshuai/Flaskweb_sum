@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block page_styles %}
+<link href="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <div class="container page-wrap">
 
@@ -49,48 +53,63 @@
     <section class="glass-card list-card reveal">
         <div class="list-head">
             <h2 class="list-title">已保存学生清单</h2>
-            <span class="list-count">{{ students | length }} 条记录 · 暂存内存</span>
+            <span class="list-count">最近 {{ students | length }} 条记录 · 最多展示 1000 条 · MySQL</span>
         </div>
 
-        {% if students %}
-        <div class="table-responsive">
-            <table class="table student-table align-middle mb-0">
+        <div>
+            <table class="table student-table align-middle mb-0" id="student-table">
                 <thead>
                     <tr>
-                        <th scope="col" class="col-index">#</th>
+                        <th scope="col" class="col-index">ID</th>
                         <th scope="col">姓名</th>
                         <th scope="col">性别</th>
                         <th scope="col">生日</th>
+                        <th scope="col">年龄（岁）</th>
+                        <th scope="col">保存时间</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for s in students %}
                     <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
-                        <td class="col-index text-muted">{{ loop.index }}</td>
+                        <td class="col-index text-muted">{{ s.id }}</td>
                         <td class="fw-semibold">{{ s.name }}</td>
                         <td>
                             <span class="gender-tag gender-tag-{{ 'm' if s.gender == '男' else 'f' }}">{{ s.gender }}</span>
                         </td>
                         <td class="text-muted">{{ s.birthday }}</td>
+                        <td data-order="{{ s.age }}">{{ "%.1f" | format(s.age) }}</td>
+                        <td class="text-muted" data-order="{{ s.saved_at }}">{{ s.saved_at }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% else %}
-        <div class="list-empty">
-            <div class="list-empty-icon">🗂️</div>
-            <p class="mb-0">暂无记录，保存第一位学生后将显示在这里。</p>
-        </div>
-        {% endif %}
     </section>
 
 </div>
 {% endblock %}
 
 {% block page_scripts %}
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.js"></script>
 <script>
 (function () {
+    new DataTable('#student-table', {
+        order: [[5, 'desc'], [0, 'desc']],
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        scrollX: true,
+        language: {
+            emptyTable: '暂无已保存学生',
+            info: '显示第 _START_ 至 _END_ 条，共 _TOTAL_ 条',
+            infoEmpty: '共 0 条',
+            infoFiltered: '（从 _MAX_ 条记录中筛选）',
+            lengthMenu: '每页显示 _MENU_ 条',
+            search: '搜索：',
+            zeroRecords: '没有匹配的学生记录',
+            paginate: { previous: '上一页', next: '下一页' }
+        }
+    });
+
     const btn = document.getElementById('btn-generate');
     const spinner = btn.querySelector('.spinner-border');
     const nameInput = document.getElementById('name');

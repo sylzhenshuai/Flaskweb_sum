@@ -17,6 +17,7 @@ requires-python = ">=3.13"
 dependencies = [
     "flask>=3.0",
     "pandas>=2.0",
+    "pymysql>=1.1",
     "random-student-info @ git+https://github.com/sylzhenshuai/random_student_info.git@ver0.1.3",
     "sclog_lite          @ git+https://github.com/sylzhenshuai/sun_course.git@ver0.2.1"
 ]
@@ -24,6 +25,10 @@ dependencies = [
 [project.optional-dependencies]
 deploy = [
     "gunicorn>=21.0",
+]
+dev = [
+    "mypy>=2.0",
+    "types-PyMySQL",
 ]
 
 [tool.setuptools.packages.find]
@@ -35,4 +40,3 @@ alt_web01 = [
     "templates/students/*.html",
     "static/css/*.css",
 ]
-

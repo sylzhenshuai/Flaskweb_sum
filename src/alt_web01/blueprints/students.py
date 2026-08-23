@@ -1,14 +1,13 @@
 """学生管理蓝图。
 
 "手工添加学生"提供完整闭环：表单录入、一键自动生成、保存
-（写内存清单 + 输出成功日志），并在页面下方展示已保存清单。
+（写入 MySQL + 输出成功日志），并在页面下方展示已保存清单。
 """
 
 from __future__ import annotations
 
 from flask import (
     Blueprint,
-    Response,
     flash,
     jsonify,
     redirect,
@@ -16,7 +15,9 @@ from flask import (
     request,
     url_for,
 )
+from pymysql import MySQLError
 from sclog_lite import logger
+from werkzeug.wrappers import Response
 
 from alt_web01.services import add_student, generate_student, list_students
 
@@ -24,16 +25,28 @@ bp = Blueprint("students", __name__, url_prefix="/students")
 
 
 @bp.get("/add-manual")
-def add_manual() -> str:
+def add_manual() -> str | tuple[str, int]:
     """渲染"手工添加学生"页面（表单 + 已保存清单）。
 
     Returns:
         str: 渲染后的页面 HTML。
     """
+    try:
+        students = list_students()
+    except (MySQLError, RuntimeError):
+        logger.exception("学生清单读取失败")
+        flash("数据库暂时不可用，请检查 MySQL 连接配置", "danger")
+        return (
+            render_template(
+                "students/add_manual.html",
+                title="手工添加学生",
+                students=[],
+            ),
+            503,
+        )
+
     return render_template(
-        "students/add_manual.html",
-        title="手工添加学生",
-        students=list_students(),
+        "students/add_manual.html", title="手工添加学生", students=students
     )
 
 
@@ -41,7 +54,7 @@ def add_manual() -> str:
 def save_student() -> Response:
     """保存手工录入的学生信息。
 
-    校验通过后写入内存清单并输出保存成功日志（暂不写入数据库），
+    校验通过后写入 MySQL 并输出保存成功日志，
     随后按 PRG 模式重定向回表单页；校验失败则 flash 提示后返回。
 
     Returns:
@@ -63,13 +76,21 @@ def save_student() -> Response:
         )
         flash(str(exc), "danger")
         return redirect(url_for("students.add_manual"))
+    except (MySQLError, RuntimeError):
+        logger.exception(
+            "学生保存时数据库访问失败 | 输入 name={!r} gender={!r} birthday={!r}",
+            name,
+            gender,
+            birthday,
+        )
+        flash("保存失败，请检查 MySQL 连接配置后重试", "danger")
+        return redirect(url_for("students.add_manual"))
 
     logger.success(
-        "学生保存成功: 姓名={} 性别={} 生日={}（内存清单共 {} 条）",
+        "学生保存成功: 姓名={} 性别={} 生日={}（已写入 MySQL）",
         student["name"],
         student["gender"],
         student["birthday"],
-        len(list_students()),
     )
     flash(f"学生「{student['name']}」保存成功", "success")
     return redirect(url_for("students.add_manual"))

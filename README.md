@@ -7,7 +7,7 @@
 
 - **首页** — 网站欢迎页与功能入口
 - **学生**
-  - 手工添加学生 — ✅ 已实现：表单录入（姓名/性别/生日）、一键自动生成、保存输出日志（sclog_lite）、页面下方展示内存清单；生日范围 2000 ~ 2020 年
+  - 手工添加学生 — ✅ 已实现：表单录入（姓名/性别/生日）、一键自动生成、保存到 MySQL，并通过 DataTables 展示最近保存的 1000 条记录、连续年龄及保存时间；生日范围 2000 ~ 2020 年
   - 批量添加学生（小数据量）
   - 批量添加学生（大数据量）
 - **大学**
@@ -27,6 +27,7 @@
 | ---- | ---- |
 | 语言 | Python ≥ 3.13 |
 | Web 框架 | Flask ≥ 3.0（应用工厂模式） |
+| 数据库 | MySQL + PyMySQL |
 | 前端 | Bootstrap 5.3（CDN）+ 自定义清新配色样式 |
 | 打包 | PEP 517 / PEP 621（src 布局 + pyproject.toml） |
 | 部署 | Docker + gunicorn |
@@ -76,7 +77,13 @@ flask --app wsgi run --debug
 
 ## Docker 部署
 
+Web 容器通过外部 `app-network` 访问 MySQL。部署前在远程虚拟机中设置
+`MYSQL_PASSWORD`；MySQL 容器的网络别名如果不是 `mysql`，还需设置
+`MYSQL_HOST`。可选变量为 `MYSQL_PORT`、`MYSQL_DATABASE`、`MYSQL_USER`
+和 `CONTAINER_TZ`。
+
 ```bash
+export MYSQL_PASSWORD='<数据库用户密码>'
 docker compose up --build -d
 ```
 

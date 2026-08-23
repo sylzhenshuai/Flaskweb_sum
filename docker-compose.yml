@@ -5,7 +5,13 @@ services:
     ports:
       - "15002:8000"
     environment:
-      - SECRET_KEY=change-me-in-production
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      MYSQL_HOST: ${MYSQL_HOST:-mysql}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test_db}
+      MYSQL_USER: ${MYSQL_USER:-test_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD must be set}
+      TZ: ${CONTAINER_TZ:-Asia/Shanghai}
     restart: always
     networks:
       - app-network
