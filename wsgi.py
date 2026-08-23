@@ -9,7 +9,10 @@
     python wsgi.py            # 本地调试
 """
 
+from dotenv import load_dotenv
 from alt_web01 import create_app
+
+load_dotenv()
 
 #: 供 WSGI 服务器引用的全局应用对象
 app = create_app()

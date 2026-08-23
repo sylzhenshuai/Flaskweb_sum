@@ -61,18 +61,20 @@ Flaskweb_sum/
 > 未发布到 PyPI，需先从 GitHub 安装（遵循 POC01 llms.txt 约定）。
 
 ```bash
-pip install -r requirements.txt   # git 托管的上游包
-pip install -e .                  # 本包（flask + pandas）
-flask --app wsgi run --debug
+python -m pip install -r requirements.txt  # git 托管的上游包
+python -m pip install -e .                 # 本包及运行依赖
+python -m flask --app wsgi run --debug
 ```
 
 浏览器访问 <http://127.0.0.1:5000>。
 
-免安装快速预览（PowerShell，适用于已有 Flask 的环境）：
+Windows 直接运行前，在项目根目录创建本机 `.env`，将 `MYSQL_HOST` 改为
+MySQL 虚拟机 IP，并填写实际密码；`python-dotenv` 会在启动时自动读取它：
 
 ```powershell
-$env:PYTHONPATH = "src"
-flask --app wsgi run --debug
+Copy-Item .env.example .env
+# 编辑 .env 后运行：
+python -m flask --app wsgi run --debug
 ```
 
 ## Docker 部署

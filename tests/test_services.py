@@ -1,6 +1,7 @@
 """学生 MySQL 持久化的最小回归检查。"""
 
 import datetime
+import os
 import unittest
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
@@ -15,6 +16,15 @@ class StudentPersistenceTest(unittest.TestCase):
         self.cursor = MagicMock()
         self.connection.__enter__.return_value = self.connection
         self.connection.cursor.return_value.__enter__.return_value = self.cursor
+
+    @patch("alt_web01._configure_logging")
+    def test_create_app_reads_secret_key(
+        self, _configure_logging: MagicMock
+    ) -> None:
+        with patch.dict(os.environ, {"SECRET_KEY": "test-secret"}):
+            app = create_app()
+
+        self.assertEqual(app.secret_key, "test-secret")
 
     @patch("alt_web01.services.pymysql.connect")
     def test_add_student_uses_parameterized_insert(self, connect: MagicMock) -> None:

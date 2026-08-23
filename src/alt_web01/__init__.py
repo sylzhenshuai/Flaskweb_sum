@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 
 from flask import Flask, Response, request
@@ -72,7 +73,9 @@ def create_app() -> Flask:
         Flask: 完成日志配置与蓝图注册的 Flask 应用实例。
     """
     app = Flask(__name__)
-    app.secret_key = "alt_web01-secret-key-change-in-production"
+    app.secret_key = os.getenv(
+        "SECRET_KEY", "alt_web01-secret-key-change-in-production"
+    )
     _configure_logging(app)
 
     for blueprint in ALL_BLUEPRINTS:

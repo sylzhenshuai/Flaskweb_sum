@@ -20,6 +20,7 @@ env/
 !.env.example
 
 # 测试与缓存
+.mypy_cache/
 .pytest_cache/
 .ruff_cache/
 .coverage
