@@ -58,10 +58,10 @@ Flaskweb_sum/
 ## 本地运行
 
 > 需要 Python ≥ 3.13。两个上游定制包（`random_student_info`、`sclog_lite`）
-> 未发布到 PyPI，使用 `requirements.txt` 中固定 tag 的 GitHub 源码压缩包安装。
+> 未发布到 PyPI，使用 `requirements.txt` 中固定 tag 的原始 GitHub 仓库 URL 安装。
 
 ```bash
-python -m pip install -r requirements.txt  # 固定 tag 的上游包
+python -m pip install -r requirements.txt  # 原始 Git URL 固定 tag 的上游包
 python -m pip install -e .                 # 本包及运行依赖
 python -m flask --app wsgi run --debug
 ```
