@@ -7,16 +7,11 @@ from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from alt_web01 import create_app
+from alt_web01 import services
 from alt_web01.services import add_student, list_students
 
 
 class StudentPersistenceTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.connection = MagicMock()
-        self.cursor = MagicMock()
-        self.connection.__enter__.return_value = self.connection
-        self.connection.cursor.return_value.__enter__.return_value = self.cursor
-
     @patch("alt_web01._configure_logging")
     def test_create_app_reads_secret_key(
         self, _configure_logging: MagicMock
@@ -26,25 +21,25 @@ class StudentPersistenceTest(unittest.TestCase):
 
         self.assertEqual(app.secret_key, "test-secret")
 
-    @patch("alt_web01.services.pymysql.connect")
-    def test_add_student_uses_parameterized_insert(self, connect: MagicMock) -> None:
-        connect.return_value = self.connection
+    @patch("alt_web01.services._database")
+    def test_add_student_uses_sedb_insert(self, database: MagicMock) -> None:
+        db = database.return_value
 
         student = add_student(" 张三 ", "男", "2004-01-02")
 
         self.assertEqual(
             student, {"name": "张三", "gender": "男", "birthday": "2004-01-02"}
         )
-        self.cursor.execute.assert_any_call(
-            "INSERT INTO students (name, gender, birthday) VALUES (%s, %s, %s)",
-            ("张三", "男", "2004-01-02"),
+        db.insert.assert_called_once_with(
+            "students", {"name": "张三", "gender": "男", "birthday": "2004-01-02"}
         )
-        self.connection.commit.assert_called_once_with()
+        create_sql = db.execute.call_args_list[0].args[0]
+        self.assertIn("CREATE TABLE IF NOT EXISTS students", create_sql)
 
-    @patch("alt_web01.services.pymysql.connect")
-    def test_list_students_reads_database_rows(self, connect: MagicMock) -> None:
-        connect.return_value = self.connection
-        self.cursor.fetchall.return_value = [
+    @patch("alt_web01.services._database")
+    def test_list_students_reads_database_rows(self, database: MagicMock) -> None:
+        db = database.return_value
+        db.fetchall.return_value = [
             {
                 "id": 7,
                 "name": "李四",
@@ -68,10 +63,40 @@ class StudentPersistenceTest(unittest.TestCase):
                 }
             ],
         )
-        query = self.cursor.execute.call_args_list[-1].args[0]
+        query = db.fetchall.call_args.args[0]
         self.assertIn("DATEDIFF(CURDATE(), birthday) / 365.2425", query)
         self.assertIn("ORDER BY created_at DESC, id DESC", query)
         self.assertIn("LIMIT 1000", query)
+
+    @patch("alt_web01.services.SCDBMySQL")
+    def test_database_uses_environment_and_bounded_pool(
+        self, client: MagicMock
+    ) -> None:
+        services._database.cache_clear()
+        try:
+            with patch.dict(
+                os.environ,
+                {
+                    "MYSQL_HOST": "db.example",
+                    "MYSQL_PORT": "3307",
+                    "MYSQL_DATABASE": "students_db",
+                    "MYSQL_USER": "student_app",
+                    "MYSQL_PASSWORD": "test-only",
+                },
+            ):
+                database = services._database()
+
+            self.assertIs(database, client.return_value)
+            config, pool = client.call_args.args
+            self.assertEqual(config.host, "db.example")
+            self.assertEqual(config.port, 3307)
+            self.assertEqual(config.database, "students_db")
+            self.assertEqual(config.user, "student_app")
+            self.assertEqual(pool.mincached, 0)
+            self.assertEqual(pool.maxcached, 5)
+            self.assertEqual(pool.maxconnections, 10)
+        finally:
+            services._database.cache_clear()
 
     @patch("alt_web01.blueprints.students.list_students")
     @patch("alt_web01._configure_logging")

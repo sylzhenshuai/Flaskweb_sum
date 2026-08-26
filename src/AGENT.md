@@ -9,7 +9,7 @@
 ## Current stack
 
 - Python 3.13, Flask 3, Gunicorn, Docker Compose.
-- MySQL through `PyMySQL`; do not add an ORM or migration framework without a demonstrated need.
+- MySQL through `sedb_mysql` backed by `mysqlclient`/`MySQLdb`; do not add an ORM or migration framework without a demonstrated need.
 - Logging through the installed `sclog_lite` package from the `sun_course` project; do not use stdlib `logging` in application code.
 - Student generation through `random_student_info`; do not hand-roll Chinese person data.
 - DataTables 3.0.2 with Bootstrap 5 styling, loaded only by the manual-student page and without jQuery.
@@ -41,7 +41,7 @@ python -m unittest discover -s tests -v
 python -m mypy .
 ```
 
-For deployment-file changes, also run `docker compose config --quiet` with `MYSQL_PASSWORD` set and `bash -n update.sh`. Tests must not write to the remote database; mock PyMySQL unless a live write was explicitly authorized.
+For deployment-file changes, also run `docker compose config --quiet` with `MYSQL_PASSWORD` set and `bash -n update.sh`. Tests must not write to the remote database; mock the shared `SCDBMySQL` client unless a live write was explicitly authorized.
 
 ## Deployment
 

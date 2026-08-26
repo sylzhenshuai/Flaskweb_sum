@@ -1,4 +1,6 @@
 # 上游定制包（PyPI 未发布，使用原始 Git 仓库 URL 并固定 tag）
+# sedb_mysql: mysqlclient 驱动与有界线程安全连接池
+git+https://github.com/sylzhenshuai/scdb_mysql_speed.git@ver0.2.0
 # random_student_info: 随机生成中国学生姓名/性别/生日
 git+https://github.com/sylzhenshuai/random_student_info.git@ver0.1.3
 # sclog_lite: loguru 封装的轻量日志包（控制台 + 文件 sink）

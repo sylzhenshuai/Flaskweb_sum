@@ -1,8 +1,15 @@
 # alt_web01 生产镜像：基于官方 Python 3.13 slim 镜像
 FROM python:3.13-slim
 
-# Install git
-RUN apt-get update && apt-get install -y git
+# Git 用于安装 VCS 依赖；其余软件包用于在 Debian slim 中编译 mysqlclient。
+# ponytail: 先保留单阶段构建；只有镜像体积成为瓶颈时再改 multi-stage。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        default-libmysqlclient-dev \
+        git \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # 禁用字节码缓存并实时输出日志，便于容器内观察运行状态
 ENV PYTHONDONTWRITEBYTECODE=1 \

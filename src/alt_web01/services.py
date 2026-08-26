@@ -2,19 +2,19 @@
 
 生成引擎遵循上游规范（POC01 ``llms.txt``）：随机学生信息由
 ``random_student_info.generate`` 产生；生日范围按业务需求约束为
-2000-01-01 ~ 2020-12-31。学生记录通过 PyMySQL 写入 MySQL。
+2000-01-01 ~ 2020-12-31。学生记录通过 ``sedb_mysql`` 连接池写入 MySQL。
 """
 
 from __future__ import annotations
 
+import atexit
 import datetime
 import os
+from functools import cache
 from typing import TypedDict
 
-import pymysql
-from pymysql.connections import Connection
-from pymysql.cursors import Cursor, DictCursor
 from random_student_info import generate
+from sedb_mysql import MySQLData, PoolConfig, SCDBMySQL
 
 #: 生日允许范围（含端点）
 BIRTH_START = datetime.date(2000, 1, 1)
@@ -43,28 +43,46 @@ class StoredStudent(Student):
     saved_at: str
 
 
-def _connect() -> Connection[DictCursor]:
-    """使用容器环境变量连接 MySQL。"""
+@cache
+def _database() -> SCDBMySQL:
+    """按进程创建一个有界连接池，并从环境变量读取 MySQL 配置。"""
     try:
         port = int(os.getenv("MYSQL_PORT", "3306"))
     except ValueError:
         raise RuntimeError("MYSQL_PORT 必须为整数") from None
 
-    return pymysql.connect(
-        host=os.getenv("MYSQL_HOST", "mysql"),
-        port=port,
-        user=os.getenv("MYSQL_USER", "test_user"),
-        password=os.getenv("MYSQL_PASSWORD", ""),
-        database=os.getenv("MYSQL_DATABASE", "test_db"),
-        charset="utf8mb4",
-        cursorclass=DictCursor,
-        connect_timeout=5,
+    return SCDBMySQL(
+        MySQLData(
+            host=os.getenv("MYSQL_HOST", "mysql"),
+            port=port,
+            user=os.getenv("MYSQL_USER", "test_user"),
+            password=os.getenv("MYSQL_PASSWORD", ""),
+            database=os.getenv("MYSQL_DATABASE", "test_db"),
+            charset="utf8mb4",
+            connect_timeout=5,
+        ),
+        # ponytail: 2 个 Gunicorn worker 合计最多 20 条连接；有指标后再参数化。
+        PoolConfig(
+            mincached=0,
+            maxcached=5,
+            maxconnections=10,
+            checkout_timeout=5,
+        ),
     )
 
 
-def _ensure_students_table(cursor: Cursor) -> None:
+def _close_database() -> None:
+    """进程退出时关闭已创建连接池中的空闲连接。"""
+    if _database.cache_info().currsize:
+        _database().close()
+
+
+atexit.register(_close_database)
+
+
+def _ensure_students_table(database: SCDBMySQL) -> None:
     """创建尚不存在的学生表。"""
-    cursor.execute(
+    database.execute(
         """
         CREATE TABLE IF NOT EXISTS students (
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -73,7 +91,8 @@ def _ensure_students_table(cursor: Cursor) -> None:
             birthday DATE NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
-        """
+        """,
+        read_only=False,
     )
 
 
@@ -122,14 +141,9 @@ def add_student(name: str, gender: str, birthday: str) -> Student:
         raise ValueError("生日必须在 2000-01-01 至 2020-12-31 之间")
 
     student = Student(name=name, gender=gender, birthday=day.isoformat())
-    with _connect() as connection:
-        with connection.cursor() as cursor:
-            _ensure_students_table(cursor)
-            cursor.execute(
-                "INSERT INTO students (name, gender, birthday) VALUES (%s, %s, %s)",
-                (student["name"], student["gender"], student["birthday"]),
-            )
-        connection.commit()
+    database = _database()
+    _ensure_students_table(database)
+    database.insert("students", student)
     return student
 
 
@@ -140,20 +154,18 @@ def list_students() -> list[StoredStudent]:
         list[StoredStudent]: 按保存时间和主键降序排列的学生记录列表；
             年龄按查询当天的连续年龄计算并保留一位小数。
     """
-    with _connect() as connection:
-        with connection.cursor() as cursor:
-            _ensure_students_table(cursor)
-            cursor.execute(
-                """
-                SELECT id, name, gender, birthday,
-                       ROUND(DATEDIFF(CURDATE(), birthday) / 365.2425, 1) AS age,
-                       created_at AS saved_at
-                FROM students
-                ORDER BY created_at DESC, id DESC
-                LIMIT 1000
-                """
-            )
-            rows = cursor.fetchall()
+    database = _database()
+    _ensure_students_table(database)
+    rows = database.fetchall(
+        """
+        SELECT id, name, gender, birthday,
+               ROUND(DATEDIFF(CURDATE(), birthday) / 365.2425, 1) AS age,
+               created_at AS saved_at
+        FROM students
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1000
+        """
+    )
 
     return [
         StoredStudent(

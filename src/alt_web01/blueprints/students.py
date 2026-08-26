@@ -15,8 +15,8 @@ from flask import (
     request,
     url_for,
 )
-from pymysql import MySQLError
 from sclog_lite import logger
+from sedb_mysql import SCDBMySQLError
 from werkzeug.wrappers import Response
 
 from alt_web01.services import add_student, generate_student, list_students
@@ -33,7 +33,7 @@ def add_manual() -> str | tuple[str, int]:
     """
     try:
         students = list_students()
-    except (MySQLError, RuntimeError):
+    except (SCDBMySQLError, RuntimeError):
         logger.exception("学生清单读取失败")
         flash("数据库暂时不可用，请检查 MySQL 连接配置", "danger")
         return (
@@ -76,7 +76,7 @@ def save_student() -> Response:
         )
         flash(str(exc), "danger")
         return redirect(url_for("students.add_manual"))
-    except (MySQLError, RuntimeError):
+    except (SCDBMySQLError, RuntimeError):
         logger.exception(
             "学生保存时数据库访问失败 | 输入 name={!r} gender={!r} birthday={!r}",
             name,

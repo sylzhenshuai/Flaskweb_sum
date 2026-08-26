@@ -27,7 +27,7 @@
 | ---- | ---- |
 | 语言 | Python ≥ 3.13 |
 | Web 框架 | Flask ≥ 3.0（应用工厂模式） |
-| 数据库 | MySQL + PyMySQL |
+| 数据库 | MySQL + sedb_mysql（mysqlclient + 有界连接池） |
 | 前端 | Bootstrap 5.3（CDN）+ 自定义清新配色样式 |
 | 打包 | PEP 517 / PEP 621（src 布局 + pyproject.toml） |
 | 部署 | Docker + gunicorn |
@@ -57,7 +57,7 @@ Flaskweb_sum/
 
 ## 本地运行
 
-> 需要 Python ≥ 3.13。两个上游定制包（`random_student_info`、`sclog_lite`）
+> 需要 Python ≥ 3.13。三个上游定制包（`sedb_mysql`、`random_student_info`、`sclog_lite`）
 > 未发布到 PyPI，使用 `requirements.txt` 中固定 tag 的原始 GitHub 仓库 URL 安装。
 
 ```bash
