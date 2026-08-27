@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block page_styles %}
+<link href="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrap">
+
+    <header class="page-head reveal">
+        <span class="page-badge">专业组管理</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">选择高校后填写专业组信息并保存。</p>
+    </header>
+
+    {% if universities %}
+    <section class="glass-card toolbar-card reveal">
+        <div class="toolbar-grid">
+            <div>
+                <label for="major-group-filter" class="form-label">当前查看高校</label>
+                <select class="form-select form-select-lg" id="major-group-filter">
+                    {% for university in universities %}
+                    <option value="{{ university.id }}" {% if university.id == selected_university_id %}selected{% endif %}>{{ university.name }} · {{ university.code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="context-card">
+                {% if selected_university %}
+                <div>
+                    <h2 class="context-title">{{ selected_university.name }}</h2>
+                    <p class="context-subtitle">代码 {{ selected_university.code }} · {{ selected_university.type }} · {{ selected_university.nature }}</p>
+                </div>
+                {% else %}
+                <p class="toolbar-note">请选择一所高校后查看其专业组清单。</p>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card reveal">
+        <div class="editor-banner">
+            <div>
+                <h2 id="major-group-editor-title">录入专业组信息</h2>
+                <p id="major-group-editor-hint">切换高校可查看对应专业组。</p>
+            </div>
+        </div>
+
+        <form method="post" action="{{ url_for('universities.save_manual_major_group') }}" id="major-group-form" novalidate>
+            <input type="hidden" id="major-group-id" name="major_group_id">
+
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <label for="major-group-university" class="form-label">所属高校</label>
+                    <select class="form-select form-select-lg" id="major-group-university" name="university_id" required>
+                        {% for university in universities %}
+                        <option value="{{ university.id }}" {% if university.id == selected_university_id %}selected{% endif %}>{{ university.name }} · {{ university.code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-5">
+                    <label for="major-group-name" class="form-label">专业组名称</label>
+                    <input type="text" class="form-control form-control-lg" id="major-group-name" name="name"
+                           maxlength="120" placeholder="如：人工智能专业组" required>
+                </div>
+                <div class="col-lg-3">
+                    <label for="major-group-code" class="form-label">专业组代码</label>
+                    <input type="text" class="form-control form-control-lg" id="major-group-code" name="code"
+                           maxlength="6" inputmode="numeric" placeholder="如：120301" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="major-group-reset-btn">清空表单</button>
+                <button type="submit" class="btn btn-brand btn-lg" id="major-group-save-btn">保存专业组</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="glass-card list-card reveal">
+        <div class="list-head">
+            <h2 class="list-title">已保存专业组清单</h2>
+            <span class="list-count">共 {{ major_groups | length }} 条记录</span>
+        </div>
+
+        <div>
+            <table class="table student-table table-uniform align-middle mb-0" id="major-group-table">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-index">ID</th>
+                        <th scope="col">所属高校</th>
+                        <th scope="col">专业组名称</th>
+                        <th scope="col">专业组代码</th>
+                        <th scope="col">保存时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for major_group in major_groups %}
+                    <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="col-index text-muted">{{ loop.index }}</td>
+                        <td>
+                            <div class="fw-semibold">{{ major_group.university_name }}</div>
+                            <div class="text-muted small">{{ major_group.university_code }}</div>
+                        </td>
+                        <td>
+                            <button type="button" class="table-action js-edit-major-group"
+                                    data-major-group-id="{{ major_group.id }}"
+                                    data-university-id="{{ major_group.university_id }}"
+                                    data-name="{{ major_group.name }}"
+                                    data-code="{{ major_group.code }}">{{ major_group.name }}</button>
+                        </td>
+                        <td>
+                            <button type="button" class="table-action table-action-secondary js-edit-major-group"
+                                    data-major-group-id="{{ major_group.id }}"
+                                    data-university-id="{{ major_group.university_id }}"
+                                    data-name="{{ major_group.name }}"
+                                    data-code="{{ major_group.code }}">{{ major_group.code }}</button>
+                        </td>
+                        <td class="text-muted" data-order="{{ major_group.saved_at }}">{{ major_group.saved_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% else %}
+    <section class="glass-card reveal">
+        <div class="inline-empty">
+            还没有可选高校，请先前往“手工添加大学”录入至少一所高校，再回来维护专业组。
+        </div>
+    </section>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.js"></script>
+<script>
+(function () {
+    const tableElement = document.getElementById('major-group-table');
+    if (tableElement) {
+        const majorGroupTable = new DataTable('#major-group-table', {
+            order: [[4, 'asc']],
+            pageLength: 25,
+            lengthMenu: [10, 25, 50, 100],
+            scrollX: true,
+            columnDefs: [
+                { targets: 0, orderable: false, searchable: false }
+            ],
+            language: {
+                emptyTable: '当前高校下暂无专业组',
+                info: '显示第 _START_ 至 _END_ 条，共 _TOTAL_ 条',
+                infoEmpty: '共 0 条',
+                infoFiltered: '（从 _MAX_ 条记录中筛选）',
+                lengthMenu: '每页显示 _MENU_ 条',
+                search: '搜索：',
+                zeroRecords: '没有匹配的专业组记录',
+                paginate: { previous: '上一页', next: '下一页' }
+            }
+        });
+
+        function updateDisplayIndexes() {
+            const pageInfo = majorGroupTable.page.info();
+            majorGroupTable.column(0, { page: 'current' }).nodes().each(function (cell, index) {
+                cell.textContent = pageInfo.start + index + 1;
+            });
+        }
+
+        majorGroupTable.on('draw', updateDisplayIndexes);
+        updateDisplayIndexes();
+    }
+
+    const filterSelect = document.getElementById('major-group-filter');
+    if (filterSelect) {
+        filterSelect.addEventListener('change', function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set('university_id', filterSelect.value);
+            window.location.href = url.toString();
+        });
+    }
+
+    const majorGroupIdInput = document.getElementById('major-group-id');
+    const universityInput = document.getElementById('major-group-university');
+    const nameInput = document.getElementById('major-group-name');
+    const codeInput = document.getElementById('major-group-code');
+    const title = document.getElementById('major-group-editor-title');
+    const hint = document.getElementById('major-group-editor-hint');
+    const saveBtn = document.getElementById('major-group-save-btn');
+    const resetBtn = document.getElementById('major-group-reset-btn');
+    const defaultUniversityId = '{{ selected_university_id or "" }}';
+
+    if (!majorGroupIdInput || !universityInput || !nameInput || !codeInput) {
+        return;
+    }
+
+    function clearForm() {
+        majorGroupIdInput.value = '';
+        nameInput.value = '';
+        codeInput.value = '';
+        universityInput.value = defaultUniversityId;
+        title.textContent = '录入专业组信息';
+        hint.textContent = '切换高校可查看对应专业组。';
+        saveBtn.textContent = '保存专业组';
+    }
+
+    codeInput.addEventListener('input', function () {
+        codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    resetBtn.addEventListener('click', clearForm);
+
+    document.querySelectorAll('.js-edit-major-group').forEach(function (button) {
+        button.addEventListener('click', function () {
+            majorGroupIdInput.value = button.dataset.majorGroupId || '';
+            universityInput.value = button.dataset.universityId || defaultUniversityId;
+            nameInput.value = button.dataset.name || '';
+            codeInput.value = button.dataset.code || '';
+            title.textContent = '修订专业组信息';
+            hint.textContent = '已回填，可修改后保存。';
+            saveBtn.textContent = '覆盖保存专业组';
+            nameInput.focus();
+        });
+    });
+})();
+</script>
+{% endblock %}

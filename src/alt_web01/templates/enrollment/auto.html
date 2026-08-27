@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block page_styles %}
+<link href="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrap ai-shell">
+    <header class="page-head reveal">
+        <span class="page-badge">入学管理</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">输入学生、学校、专业组和日期，系统按现有记录完成安排。</p>
+    </header>
+
+    <section class="ai-grid reveal">
+        <div class="glass-card prompt-panel">
+            <div class="editor-banner">
+                <div>
+                    <h2>批量安排</h2>
+                    <p>一段描述可以包含多名学生；学生、学校和专业组必须是系统中已有的记录。</p>
+                </div>
+            </div>
+
+            <form method="post" action="{{ url_for('enrollment.save_auto') }}" novalidate>
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <label for="enrollment-model" class="form-label">处理方式</label>
+                        <select class="form-select form-select-lg" id="enrollment-model" name="model" required>
+                            {% for model in model_options %}
+                            <option value="{{ model }}" {% if model == ai_model %}selected{% endif %}>{{ model }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="summary-stat summary-stat-inline">
+                            <span class="summary-stat-label">字段范围</span>
+                            <span class="summary-stat-inline-value">学生 · 学校 · 专业组 · 日期</span>
+                            <span class="summary-stat-caption">安排结果会写入与手动入学相同的记录表。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <label for="enrollment-prompt" class="form-label">安排描述</label>
+                <textarea class="form-control prompt-textarea" id="enrollment-prompt" name="prompt"
+                          placeholder="例如：将张三安排到清华大学计算机专业组，入学日期为 2026-09-01；李四安排到复旦大学经济学专业组。" required>{{ prompt_text }}</textarea>
+
+                <div class="prompt-toolbar">
+                    <div class="prompt-meta">支持一次安排多名学生；缺少日期时默认使用今天。</div>
+                    <div class="form-actions mt-0">
+                        <button type="button" class="btn btn-ghost" id="auto-enrollment-example">填入示例</button>
+                        <button type="submit" class="btn btn-brand btn-lg">开始安排</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="summary-card-grid reveal">
+            <div class="summary-stat">
+                <span class="summary-stat-label">可选学生</span>
+                <span class="summary-stat-value">{{ students | length }}</span>
+                <span class="summary-stat-caption">来自学生清单</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-stat-label">可选学校</span>
+                <span class="summary-stat-value">{{ universities | length }}</span>
+                <span class="summary-stat-caption">来自高校清单</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-stat-label">可选专业组</span>
+                <span class="summary-stat-value">{{ major_groups | length }}</span>
+                <span class="summary-stat-caption">按所属学校校验</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card reveal">
+        {% if workflow_result %}
+        <div class="plan-section">
+            <div class="editor-banner">
+                <div>
+                    <h2>本次安排结果</h2>
+                    <p>已按学生、学校、专业组和日期完成保存。</p>
+                </div>
+                <span class="soft-pill">共 {{ workflow_result.save_summary.created }} 条</span>
+            </div>
+
+            {% for item in workflow_result.enrollments %}
+            <article class="plan-card">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <span class="summary-stat-label">学生</span>
+                        <strong>{{ item.student_name }}</strong>
+                        <small class="d-block text-muted">ID {{ item.student_id }} · {{ item.student_gender }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="summary-stat-label">学校</span>
+                        <strong>{{ item.university_name }}</strong>
+                        <small class="d-block text-muted">代码 {{ item.university_code }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="summary-stat-label">专业组</span>
+                        <strong>{{ item.major_group_name }}</strong>
+                        <small class="d-block text-muted">代码 {{ item.major_group_code }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="summary-stat-label">入学日期</span>
+                        <strong>{{ item.enrolled_on }}</strong>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+        <div class="ai-empty">
+            <div class="ai-empty-title">等待安排描述</div>
+            <p class="ai-empty-text">输入一段完整描述后，页面会先校验字段，再保存入学记录。</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="glass-card list-card reveal">
+        <div class="list-head">
+            <h2 class="list-title">已安排入学</h2>
+            <span class="list-count">共 {{ enrollments | length }} 条记录 · 最多展示 1000 条</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table student-table table-uniform align-middle mb-0" id="enrollment-table">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-index">ID</th>
+                        <th scope="col">学生</th>
+                        <th scope="col">性别</th>
+                        <th scope="col">学校</th>
+                        <th scope="col">学校代码</th>
+                        <th scope="col">专业组</th>
+                        <th scope="col">专业组代码</th>
+                        <th scope="col">入学日期</th>
+                        <th scope="col">登记时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in enrollments %}
+                    <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="col-index text-muted">{{ item.id }}</td>
+                        <td class="fw-semibold">{{ item.student_name }}</td>
+                        <td>{{ item.student_gender }}</td>
+                        <td>{{ item.university_name }}</td>
+                        <td class="text-muted">{{ item.university_code }}</td>
+                        <td>{{ item.major_group_name }}</td>
+                        <td class="text-muted">{{ item.major_group_code }}</td>
+                        <td data-order="{{ item.enrolled_on }}">{{ item.enrolled_on }}</td>
+                        <td class="text-muted" data-order="{{ item.saved_at }}">{{ item.saved_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    new DataTable('#enrollment-table', {
+        order: [[7, 'asc'], [0, 'asc']],
+        pageLength: 10,
+        lengthMenu: [10, 25, 100],
+        scrollX: true,
+        language: {
+            emptyTable: '暂无入学记录',
+            info: '显示第 _START_ 至 _END_ 条，共 _TOTAL_ 条',
+            infoEmpty: '共 0 条',
+            infoFiltered: '（从 _MAX_ 条记录中筛选）',
+            lengthMenu: '每页显示 _MENU_ 条',
+            search: '搜索：',
+            zeroRecords: '没有匹配的入学记录',
+            paginate: { previous: '上一页', next: '下一页' }
+        }
+    });
+
+    const exampleButton = document.getElementById('auto-enrollment-example');
+    const promptInput = document.getElementById('enrollment-prompt');
+    if (exampleButton && promptInput) {
+        exampleButton.addEventListener('click', function () {
+            promptInput.value = '将张三安排到清华大学计算机专业组，入学日期为 2026-09-01；李四安排到复旦大学经济学专业组。';
+            promptInput.focus();
+        });
+    }
+
+    const form = promptInput && promptInput.form;
+    if (form) {
+        form.addEventListener('submit', function () {
+            const button = form.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = true;
+                button.textContent = '正在安排…';
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

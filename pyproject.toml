@@ -13,6 +13,7 @@ requires-python = ">=3.13"
 # 运行时还需三个 GitHub 托管的上游包（PyPI 未发布），使用 Git URL 固定 tag。
 dependencies = [
     "flask>=3.0",
+    "openai>=3.3.1",
     "pandas>=2.0",
     "sedb-mysql @ git+https://github.com/sylzhenshuai/scdb_mysql_speed.git@ver0.2.0",
     "python-dotenv>=1.0",
@@ -35,5 +36,7 @@ where = ["src"]
 alt_web01 = [
     "templates/*.html",
     "templates/students/*.html",
+    "templates/enrollment/*.html",
+    "templates/universities/*.html",
     "static/css/*.css",
 ]

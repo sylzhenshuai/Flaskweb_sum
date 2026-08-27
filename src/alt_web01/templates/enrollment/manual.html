@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block page_styles %}
+<link href="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrap enrollment-page">
+    <header class="page-head reveal">
+        <span class="page-badge">入学管理</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">选择学生、学校与专业组，确认日期后即可完成入学安排。</p>
+    </header>
+
+    <section class="glass-card enrollment-form-card reveal">
+        <div class="editor-banner">
+            <div>
+                <h2>安排一名学生入学</h2>
+                <p>输入姓名即可从候选项中快速定位，也可以直接展开下拉列表选择。</p>
+            </div>
+            <span class="status-pill status-pill-muted">每名学生仅安排一次</span>
+        </div>
+
+        <form method="post" action="{{ url_for('enrollment.save_manual') }}" id="enrollment-form" novalidate>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <label for="student-picker" class="form-label">学生</label>
+                    <input class="form-control form-control-lg" id="student-picker" list="student-options"
+                           role="combobox" aria-autocomplete="list" placeholder="输入姓名或 ID" autocomplete="off" required>
+                    <input type="hidden" id="student-id" name="student_id">
+                    <datalist id="student-options">
+                        {% for student in students %}
+                        <option value="{{ student.name }} · #{{ student.id }}" data-id="{{ student.id }}">
+                        {% endfor %}
+                    </datalist>
+                    <div class="form-text">共 {{ students | length }} 名可选学生</div>
+                </div>
+                <div class="col-lg-4">
+                    <label for="university-picker" class="form-label">学校</label>
+                    <input class="form-control form-control-lg" id="university-picker" list="university-options"
+                           role="combobox" aria-autocomplete="list" placeholder="输入学校名称或代码" autocomplete="off" required>
+                    <input type="hidden" id="university-id" name="university_id">
+                    <datalist id="university-options">
+                        {% for university in universities %}
+                        <option value="{{ university.name }} · {{ university.code }}" data-id="{{ university.id }}">
+                        {% endfor %}
+                    </datalist>
+                    <div class="form-text">共 {{ universities | length }} 所可选学校</div>
+                </div>
+                <div class="col-lg-4">
+                    <label for="major-picker" class="form-label">专业组</label>
+                    <input class="form-control form-control-lg" id="major-picker" list="major-options"
+                           role="combobox" aria-autocomplete="list" placeholder="先选择学校，再输入专业组" autocomplete="off" required>
+                    <input type="hidden" id="major-group-id" name="major_group_id">
+                    <datalist id="major-options">
+                        {% for group in major_groups %}
+                        <option value="{{ group.name }} · {{ group.code }}" data-id="{{ group.id }}"
+                                data-university-id="{{ group.university_id }}">
+                        {% endfor %}
+                    </datalist>
+                    <div class="form-text" id="major-help">将显示所选学校下的专业组</div>
+                </div>
+                <div class="col-md-4">
+                    <label for="enrolled-on" class="form-label">入学日期</label>
+                    <input type="date" class="form-control form-control-lg" id="enrolled-on"
+                           name="enrolled_on" value="{{ today }}" required>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="reset" class="btn btn-ghost" id="enrollment-reset">清空选择</button>
+                <button type="submit" class="btn btn-brand btn-lg">确认入学</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="glass-card list-card reveal">
+        <div class="list-head">
+            <h2 class="list-title">已安排入学</h2>
+            <span class="list-count">最近 {{ enrollments | length }} 条记录 · 最多展示 1000 条</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table student-table table-uniform align-middle mb-0" id="enrollment-table">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-index">ID</th>
+                        <th scope="col">学生</th>
+                        <th scope="col">性别</th>
+                        <th scope="col">学校</th>
+                        <th scope="col">学校代码</th>
+                        <th scope="col">专业组</th>
+                        <th scope="col">专业组代码</th>
+                        <th scope="col">入学日期</th>
+                        <th scope="col">登记时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in enrollments %}
+                    <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="col-index text-muted">{{ item.id }}</td>
+                        <td class="fw-semibold">{{ item.student_name }}</td>
+                        <td><span class="gender-tag gender-tag-{{ 'm' if item.student_gender == '男' else 'f' }}">{{ item.student_gender }}</span></td>
+                        <td>{{ item.university_name }}</td>
+                        <td class="text-muted">{{ item.university_code }}</td>
+                        <td>{{ item.major_group_name }}</td>
+                        <td class="text-muted">{{ item.major_group_code }}</td>
+                        <td data-order="{{ item.enrolled_on }}">{{ item.enrolled_on }}</td>
+                        <td class="text-muted" data-order="{{ item.saved_at }}">{{ item.saved_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.js"></script>
+<script>
+(function () {
+    'use strict';
+
+    new DataTable('#enrollment-table', {
+        order: [[7, 'asc'], [0, 'asc']],
+        pageLength: 10,
+        lengthMenu: [10, 25, 100],
+        scrollX: true,
+        language: {
+            emptyTable: '暂无入学记录',
+            info: '显示第 _START_ 至 _END_ 条，共 _TOTAL_ 条',
+            infoEmpty: '共 0 条',
+            infoFiltered: '（从 _MAX_ 条记录中筛选）',
+            lengthMenu: '每页显示 _MENU_ 条',
+            search: '搜索：',
+            zeroRecords: '没有匹配的入学记录',
+            paginate: { previous: '上一页', next: '下一页' }
+        }
+    });
+
+    const form = document.getElementById('enrollment-form');
+    const universityInput = document.getElementById('university-picker');
+    const universityId = document.getElementById('university-id');
+    const majorInput = document.getElementById('major-picker');
+    const majorId = document.getElementById('major-group-id');
+    const majorList = document.getElementById('major-options');
+    const majorHelp = document.getElementById('major-help');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const allMajorGroups = {{ major_groups | tojson }};
+
+    function resolvePicker(input, list, hidden, message) {
+        const query = input.value.trim().toLowerCase();
+        const options = Array.from(list.options);
+        const matched = query
+            ? options.find(function (option) {
+                return option.value.toLowerCase() === query;
+            }) || options.find(function (option) {
+                return option.value.toLowerCase().includes(query);
+            })
+            : null;
+        hidden.value = matched ? matched.dataset.id : '';
+        input.setCustomValidity(matched ? '' : message);
+        return matched;
+    }
+
+    function renderMajorOptions() {
+        const selectedId = universityId.value;
+        majorList.innerHTML = '';
+        allMajorGroups.filter(function (group) {
+            return selectedId && String(group.university_id) === selectedId;
+        }).forEach(function (group) {
+            const option = document.createElement('option');
+            option.value = group.name + ' · ' + group.code;
+            option.dataset.id = group.id;
+            majorList.appendChild(option);
+        });
+        majorInput.value = '';
+        majorId.value = '';
+        majorInput.setCustomValidity(selectedId ? '请选择专业组' : '请先选择学校');
+        majorHelp.textContent = selectedId
+            ? '当前学校可选 ' + majorList.options.length + ' 个专业组'
+            : '将显示所选学校下的专业组';
+    }
+
+    document.getElementById('student-picker').addEventListener('input', function () {
+        resolvePicker(this, document.getElementById('student-options'), document.getElementById('student-id'), '请选择学生');
+    });
+    universityInput.addEventListener('input', function () {
+        resolvePicker(this, document.getElementById('university-options'), universityId, '请选择学校');
+        renderMajorOptions();
+    });
+    majorInput.addEventListener('input', function () {
+        resolvePicker(this, majorList, majorId, '请选择专业组');
+    });
+    form.addEventListener('submit', function (event) {
+        const valid = [
+            resolvePicker(document.getElementById('student-picker'), document.getElementById('student-options'), document.getElementById('student-id'), '请选择学生'),
+            resolvePicker(universityInput, document.getElementById('university-options'), universityId, '请选择学校'),
+            resolvePicker(majorInput, majorList, majorId, '请选择专业组')
+        ].every(Boolean);
+        if (!valid || !form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+        } else {
+            submitButton.disabled = true;
+            submitButton.textContent = '正在保存…';
+        }
+    });
+    document.getElementById('enrollment-reset').addEventListener('click', function () {
+        window.setTimeout(renderMajorOptions, 0);
+    });
+    renderMajorOptions();
+})();
+</script>
+{% endblock %}

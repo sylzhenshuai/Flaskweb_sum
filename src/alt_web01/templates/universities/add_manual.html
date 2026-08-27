@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block page_styles %}
+<link href="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container page-wrap">
+
+    <header class="page-head reveal">
+        <span class="page-badge">高校管理</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">填写高校信息并保存。</p>
+    </header>
+
+    <section class="glass-card reveal">
+        <div class="editor-banner">
+            <div>
+                <h2 id="university-editor-title">录入高校信息</h2>
+                <p id="university-editor-hint">点击清单可回填修改。</p>
+            </div>
+        </div>
+
+        <form method="post" action="{{ url_for('universities.save_manual_university') }}" id="university-form" novalidate>
+            <input type="hidden" id="university-id" name="university_id">
+
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <label for="university-name" class="form-label">高校名称</label>
+                    <input type="text" class="form-control form-control-lg" id="university-name" name="name"
+                           maxlength="120" placeholder="如：东海工学院" required>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label for="university-code" class="form-label">高校代码</label>
+                    <input type="text" class="form-control form-control-lg" id="university-code" name="code"
+                           maxlength="3" inputmode="numeric" placeholder="如：101" required>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label for="university-type" class="form-label">高校类型</label>
+                    <select class="form-select form-select-lg" id="university-type" name="type" required>
+                        {% for item in university_types %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-3 col-md-4">
+                    <label for="university-nature" class="form-label">高校层次</label>
+                    <select class="form-select form-select-lg" id="university-nature" name="nature" required>
+                        {% for item in university_natures %}
+                        <option value="{{ item }}">{{ item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn btn-ghost" id="university-reset-btn">清空表单</button>
+                <button type="submit" class="btn btn-brand btn-lg" id="university-save-btn">保存高校</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="glass-card list-card reveal">
+        <div class="list-head">
+            <h2 class="list-title">已保存高校清单</h2>
+            <span class="list-count">共 {{ universities | length }} 条记录</span>
+        </div>
+
+        <div>
+            <table class="table student-table table-uniform align-middle mb-0" id="university-table">
+                <thead>
+                    <tr>
+                        <th scope="col" class="col-index">ID</th>
+                        <th scope="col">高校名称</th>
+                        <th scope="col">高校代码</th>
+                        <th scope="col">高校类型</th>
+                        <th scope="col">高校层次</th>
+                        <th scope="col">保存时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for university in universities %}
+                    <tr style="animation-delay: {{ loop.index0 * 0.05 }}s">
+                        <td class="col-index text-muted">{{ university.id }}</td>
+                        <td>
+                            <button type="button" class="table-action js-edit-university"
+                                    data-university-id="{{ university.id }}"
+                                    data-name="{{ university.name }}"
+                                    data-code="{{ university.code }}"
+                                    data-type="{{ university.type }}"
+                                    data-nature="{{ university.nature }}">{{ university.name }}</button>
+                        </td>
+                        <td>
+                            <button type="button" class="table-action table-action-secondary js-edit-university"
+                                    data-university-id="{{ university.id }}"
+                                    data-name="{{ university.name }}"
+                                    data-code="{{ university.code }}"
+                                    data-type="{{ university.type }}"
+                                    data-nature="{{ university.nature }}">{{ university.code }}</button>
+                        </td>
+                        <td>{{ university.type }}</td>
+                        <td>{{ university.nature }}</td>
+                        <td class="text-muted" data-order="{{ university.saved_at }}">{{ university.saved_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://cdn.datatables.net/v/bs5/dt-3.0.2/datatables.min.js"></script>
+<script>
+(function () {
+    new DataTable('#university-table', {
+        order: [[0, 'asc']],
+        pageLength: 25,
+        lengthMenu: [10, 25, 50, 100],
+        scrollX: true,
+        language: {
+            emptyTable: '暂无已保存高校',
+            info: '显示第 _START_ 至 _END_ 条，共 _TOTAL_ 条',
+            infoEmpty: '共 0 条',
+            infoFiltered: '（从 _MAX_ 条记录中筛选）',
+            lengthMenu: '每页显示 _MENU_ 条',
+            search: '搜索：',
+            zeroRecords: '没有匹配的高校记录',
+            paginate: { previous: '上一页', next: '下一页' }
+        }
+    });
+
+    const form = document.getElementById('university-form');
+    const universityIdInput = document.getElementById('university-id');
+    const nameInput = document.getElementById('university-name');
+    const codeInput = document.getElementById('university-code');
+    const typeInput = document.getElementById('university-type');
+    const natureInput = document.getElementById('university-nature');
+    const title = document.getElementById('university-editor-title');
+    const hint = document.getElementById('university-editor-hint');
+    const saveBtn = document.getElementById('university-save-btn');
+    const resetBtn = document.getElementById('university-reset-btn');
+
+    function clearForm() {
+        form.reset();
+        universityIdInput.value = '';
+        title.textContent = '录入高校信息';
+        hint.textContent = '点击清单可回填修改。';
+        saveBtn.textContent = '保存高校';
+    }
+
+    codeInput.addEventListener('input', function () {
+        codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 3);
+    });
+
+    resetBtn.addEventListener('click', clearForm);
+
+    document.querySelectorAll('.js-edit-university').forEach(function (button) {
+        button.addEventListener('click', function () {
+            universityIdInput.value = button.dataset.universityId || '';
+            nameInput.value = button.dataset.name || '';
+            codeInput.value = button.dataset.code || '';
+            typeInput.value = button.dataset.type || '{{ university_types[0] if university_types else "" }}';
+            natureInput.value = button.dataset.nature || '{{ university_natures[0] if university_natures else "" }}';
+            title.textContent = '修订高校信息';
+            hint.textContent = '已回填，可修改后保存。';
+            saveBtn.textContent = '覆盖保存高校';
+            nameInput.focus();
+        });
+    });
+})();
+</script>
+{% endblock %}

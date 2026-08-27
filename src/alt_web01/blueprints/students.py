@@ -19,13 +19,18 @@ from sclog_lite import logger
 from sedb_mysql import SCDBMySQLError
 from werkzeug.wrappers import Response
 
-from alt_web01.services import add_student, generate_student, list_students
+from alt_web01.services import (
+    add_student,
+    generate_and_add_students,
+    generate_student,
+    list_students,
+)
 
 bp = Blueprint("students", __name__, url_prefix="/students")
 
 
 @bp.get("/add-manual")
-def add_manual() -> str | tuple[str, int]:
+def add_manual() -> str:
     """渲染"手工添加学生"页面（表单 + 已保存清单）。
 
     Returns:
@@ -35,15 +40,9 @@ def add_manual() -> str | tuple[str, int]:
         students = list_students()
     except (SCDBMySQLError, RuntimeError):
         logger.exception("学生清单读取失败")
-        flash("数据库暂时不可用，请检查 MySQL 连接配置", "danger")
-        return (
-            render_template(
-                "students/add_manual.html",
-                title="手工添加学生",
-                students=[],
-            ),
-            503,
-        )
+        flash("数据库暂时不可用，已显示空清单，请稍后刷新重试", "warning")
+        # 页面本身保持可用；数据库恢复后刷新即可重新加载清单。
+        students = []
 
     return render_template(
         "students/add_manual.html", title="手工添加学生", students=students
@@ -113,21 +112,85 @@ def random_student() -> Response:
     return jsonify(student)
 
 
-@bp.route("/add-bulk-small")
-def add_bulk_small() -> str:
-    """渲染"批量添加学生（小数据量）"页面。
+def _bulk_page(
+    *,
+    title: str,
+    mode: str,
+    max_count: int,
+) -> str:
+    """渲染批量添加页面并加载最近学生清单。
+
+    Args:
+        title: 页面标题。
+        mode: ``small`` 或 ``large``。
+        max_count: 本页面允许的一次生成上限。
 
     Returns:
-        str: 页面标题为"批量添加学生（小数据量）"的 HTML 页面。
+        str: 批量添加页面 HTML。
     """
-    return render_template("page.html", title="批量添加学生（小数据量）")
+    try:
+        students = list_students()
+    except (SCDBMySQLError, RuntimeError):
+        logger.exception("批量添加页面读取学生清单失败")
+        flash("数据库暂时不可用，清单将在恢复后重新加载", "warning")
+        students = []
+
+    return render_template(
+        "students/add_bulk.html",
+        title=title,
+        mode=mode,
+        max_count=max_count,
+        students=students,
+    )
 
 
-@bp.route("/add-bulk-large")
-def add_bulk_large() -> str:
-    """渲染"批量添加学生（大数据量）"页面。
+def _save_bulk(*, mode: str, max_count: int) -> Response:
+    """处理批量生成请求并按 PRG 模式返回页面。
+
+    Args:
+        mode: ``small`` 或 ``large``。
+        max_count: 本页面允许的一次生成上限。
 
     Returns:
-        str: 页面标题为"批量添加学生（大数据量）"的 HTML 页面。
+        Response: 重定向到对应批量添加页面。
     """
-    return render_template("page.html", title="批量添加学生（大数据量）")
+    raw_count = request.form.get("count", "")
+    try:
+        count = int(raw_count)
+    except ValueError:
+        count = 0
+
+    if not 1 <= count <= max_count:
+        flash(f"请输入 1 至 {max_count} 之间的整数", "danger")
+        return redirect(request.path)
+
+    try:
+        records = generate_and_add_students(count)
+    except (SCDBMySQLError, RuntimeError):
+        logger.exception("批量添加学生时数据库访问失败 | 数量={}", count)
+        flash("批量保存失败，请检查 MySQL 连接配置后重试", "danger")
+        return redirect(request.path)
+    except ValueError as exc:
+        logger.warning("批量生成学生失败: {}", exc)
+        flash(str(exc), "danger")
+        return redirect(request.path)
+
+    logger.success("批量添加学生成功: 模式={} 数量={}", mode, len(records))
+    flash(f"已生成并保存 {len(records)} 名学生", "success")
+    return redirect(request.path)
+
+
+@bp.route("/add-bulk-small", methods=["GET", "POST"])
+def add_bulk_small() -> str | Response:
+    """渲染或处理小数量批量添加页面。"""
+    if request.method == "POST":
+        return _save_bulk(mode="small", max_count=100)
+    return _bulk_page(title="批量添加学生（小数量）", mode="small", max_count=100)
+
+
+@bp.route("/add-bulk-large", methods=["GET", "POST"])
+def add_bulk_large() -> str | Response:
+    """渲染或处理大数量批量添加页面。"""
+    if request.method == "POST":
+        return _save_bulk(mode="large", max_count=10000)
+    return _bulk_page(title="批量添加学生（大数量）", mode="large", max_count=10000)

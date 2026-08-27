@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container page-wrap ai-shell">
+
+    <header class="page-head reveal">
+        <span class="page-badge">自动录入</span>
+        <h1 class="page-title">{{ title }}</h1>
+        <p class="page-subtitle">用自然语言描述高校与专业组，系统会自动解析并保存到数据库。</p>
+    </header>
+
+    <section class="ai-grid reveal">
+        <div class="glass-card prompt-panel">
+            <div class="editor-banner">
+                <div>
+                    <h2>自然语言录入</h2>
+                    <p>支持口语化、说明式或夹杂无关内容的描述；只要提到高校或专业组，系统就会尽量抽取可保存信息。</p>
+                </div>
+            </div>
+
+            <form method="post" action="{{ url_for('universities.save_auto') }}" novalidate>
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <label for="ai-model" class="form-label">模型</label>
+                        <select class="form-select form-select-lg" id="ai-model" name="model" required>
+                            {% for model in model_options %}
+                            <option value="{{ model }}" {% if model == ai_model %}selected{% endif %}>{{ model }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="summary-stat summary-stat-inline">
+                            <span class="summary-stat-label">当前选择</span>
+                            <span class="summary-stat-inline-value">{{ ai_model }}</span>
+                            <span class="summary-stat-caption">下拉框展示当前地址与 API Key 对应账号可用的模型列表。</span>
+                        </div>
+                    </div>
+                </div>
+
+                <label for="ai-prompt" class="form-label">输入描述</label>
+                <textarea class="form-control prompt-textarea" id="ai-prompt" name="prompt" placeholder="例如：帮我补一下南京工业大学的专业组，新增机械电子专业组080204；另外新建滨海学院，学校代码315，民办，其他，顺手加上数字媒体专业组550103。" required>{{ prompt_text }}</textarea>
+
+                <div class="prompt-toolbar">
+                    <div class="prompt-meta">支持一次输入多所学校，也支持只补某所已有高校的专业组。</div>
+                    <div class="form-actions mt-0">
+                        <button type="button" class="btn btn-ghost" id="auto-fill-example">填入示例</button>
+                        <button type="submit" class="btn btn-brand btn-lg">开始自动添加</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="summary-card-grid reveal">
+            <div class="summary-stat">
+                <span class="summary-stat-label">高校总数</span>
+                <span class="summary-stat-value">{{ summary.total_universities }}</span>
+                <span class="summary-stat-caption">已在数据库中的高校记录</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-stat-label">专业组总数</span>
+                <span class="summary-stat-value">{{ summary.total_major_groups }}</span>
+                <span class="summary-stat-caption">当前累计的专业组记录</span>
+            </div>
+            <div class="summary-stat">
+                <span class="summary-stat-label">自动保存策略</span>
+                <span class="summary-stat-value">匹配后覆盖</span>
+                <span class="summary-stat-caption">按高校和专业组的名称或代码识别现有记录</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="glass-card reveal">
+        {% if workflow_result %}
+        <div class="plan-section">
+            <div class="editor-banner">
+                <div>
+                    <h2>本次执行结果</h2>
+                    <p>下面展示本次模型 {{ workflow_result.model }} 解析出的结构和最终保存结果。</p>
+                </div>
+                <div class="pill-list">
+                    <span class="soft-pill">新增高校 {{ workflow_result.save_summary.universities_created }}</span>
+                    <span class="soft-pill">更新高校 {{ workflow_result.save_summary.universities_updated }}</span>
+                    <span class="soft-pill soft-pill-muted">新增专业组 {{ workflow_result.save_summary.major_groups_created }}</span>
+                    <span class="soft-pill soft-pill-muted">更新专业组 {{ workflow_result.save_summary.major_groups_updated }}</span>
+                </div>
+            </div>
+
+            {% for university in workflow_result.result_universities %}
+            <article class="plan-card">
+                <div class="plan-card-head">
+                    <div>
+                        <h3 class="plan-card-title">{{ university.name }}</h3>
+                        <div class="plan-card-subtitle">代码 {{ university.code }} · {{ university.type }} · {{ university.nature }}</div>
+                    </div>
+                    <div class="pill-list">
+                        <span class="soft-pill">高校</span>
+                        <span class="soft-pill soft-pill-muted">专业组 {{ university.major_groups | length }} 个</span>
+                    </div>
+                </div>
+
+                {% if university.major_groups %}
+                <div class="plan-major-list">
+                    {% for major_group in university.major_groups %}
+                    <div class="plan-major-item">
+                        <span class="plan-major-name">{{ major_group.name }}</span>
+                        <span class="plan-major-code">代码 {{ major_group.code }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="inline-empty">本次描述未包含专业组。</div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="ai-empty">
+            <div class="ai-empty-title">等待自然语言描述</div>
+            <p class="ai-empty-text">输入一段完整描述后，系统会生成高校与专业组计划，并立即调用现有保存逻辑写入数据库。</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <section class="history-grid reveal">
+        <section class="glass-card">
+            <div class="list-head">
+                <h2 class="list-title">最近高校</h2>
+                <span class="list-count">共 {{ universities | length }} 条</span>
+            </div>
+
+            {% if universities %}
+            <div class="mini-table-wrap">
+                <table class="mini-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>高校名称</th>
+                            <th>代码</th>
+                            <th>层次</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for university in universities[-8:] %}
+                        <tr>
+                            <td>{{ university.id }}</td>
+                            <td>{{ university.name }}</td>
+                            <td>{{ university.code }}</td>
+                            <td>{{ university.nature }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="inline-empty">当前还没有高校记录。</div>
+            {% endif %}
+        </section>
+
+        <section class="glass-card">
+            <div class="list-head">
+                <h2 class="list-title">最近专业组</h2>
+                <span class="list-count">共 {{ recent_major_groups | length }} 条</span>
+            </div>
+
+            {% if recent_major_groups %}
+            <div class="mini-table-wrap">
+                <table class="mini-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>专业组名称</th>
+                            <th>代码</th>
+                            <th>所属高校</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for major_group in recent_major_groups[-8:] %}
+                        <tr>
+                            <td>{{ major_group.id }}</td>
+                            <td>{{ major_group.name }}</td>
+                            <td>{{ major_group.code }}</td>
+                            <td>{{ major_group.university_name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="inline-empty">当前还没有可展示的专业组记录。</div>
+            {% endif %}
+        </section>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+(function () {
+    const exampleButton = document.getElementById('auto-fill-example');
+    const promptInput = document.getElementById('ai-prompt');
+
+    if (!exampleButton || !promptInput) {
+        return;
+    }
+
+    exampleButton.addEventListener('click', function () {
+        promptInput.value = '今天先处理学校相关内容：给南京工业大学补一个机械电子专业组080204；另外新增江南理工大学，代码118，公办，一本，下设人工智能专业组120301、智能制造专业组080213。其余不相关的话可以忽略。';
+        promptInput.focus();
+    });
+})();
+</script>
+{% endblock %}

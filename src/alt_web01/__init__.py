@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 
 from flask import Flask, Response, request
@@ -15,6 +16,8 @@ from sclog_lite import logger
 
 from .blueprints import ALL_BLUEPRINTS
 
+#: 控制台与文件 sink 统一在首次 create_app 时配置，避免重复输出。
+_logging_configured = False
 #: 文件日志 sink 句柄；进程内全局唯一，避免重复 create_app 时日志翻倍
 _file_sink_id: int | None = None
 
@@ -29,13 +32,20 @@ def _configure_logging(app: Flask) -> None:
     Args:
         app: 目标 Flask 应用实例。
     """
-    global _file_sink_id
-    if _file_sink_id is None:
+    global _file_sink_id, _logging_configured
+    if not _logging_configured:
+        logger.remove()
+        logger.add(
+            sys.stderr,
+            format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+            colorize=False,
+        )
         _file_sink_id = logger.add_file_sink(
             rotation="10 MB",
             retention=5,
             format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
         )
+        _logging_configured = True
 
     @app.before_request
     def _log_request_start() -> None:
